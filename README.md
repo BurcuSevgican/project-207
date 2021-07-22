@@ -1,152 +1,343 @@
-# Project-207 : Web Page Application (Postgresql-Nodejs-React) deployed on EC2's with Ansible, Docker and Nginx Proxy Server
+# Hands-on Ansible-06 : Using Roles
+The purpose of this hands-on training is to give students knowledge of basic Ansible skills.
 
-## Description
+## Learning Outcomes
 
-The Clarusway Web-Page Application aims to deploy web-page written Nodejs and React Frameworks on AWS Cloud Infrastructure using Ansible. Building infrastructure process is managing with control node utilizing Ansible. This infrastructure has 1 control node and 3 EC2's as worker node. These EC2's will be launched on AWS console. Web-page has 3 main components which are postgresql, nodejs, and react. Each component is serving in Docker container on EC2s dedicated for them. Postgresql is serving as Database of web-page. Nodejs controls backend part of web-side and react controls frontend side of web-page. The code was written by Clarusway's Developers and architecture will be created by Clarusway's AWS & DevOps Team.
+At the end of this hands-on training, students will be able to;
 
-## Problem Statement
+- Explain what is Ansible role
+- Learn how to create, find and use a role.  
 
-![Project_007](ansible.png)
+## Outline
 
-- Clarusway has recently ended up a project that aims to serve as web page. You and your colleagues are assigned to work on this project. Clarusway Developer team has done with code and DevOps team is going to deploy the app in production environment using ansible.
+- Part 1 - Install Ansible
 
-- Application is coded by Clarusway Fullstack development team and given you as DevOps team. Web-page allows users to collect their infos. Registration data should be kept in separate PostgreSQL database located in one of EC2s. Nodejs framework controls backend and serves on port 5000, it is als connected to the PostgreSQL database on port 5432. React framework controls the frontend and it is also connected to the Nodejs server on port 5000. React server broadcasts web-page on port 3000. 
+- Part 2 - Using Ansible Roles 
 
-- The Web Application will be deployed using Nodejs and React framework.
+- Part 3 - Using Ansible Roles from Ansible Galaxy
 
-- The Web Application should be accessible via web browser from anywhere on port 3000.
 
-- EC2's and their security groups should be created on AWS console.
 
-- Security groups should be attached to EC2's with at least permission rule.
+## Part 1 - Install Ansible
 
-- The rest of the process has to be controlled with control node which is connected SSH port.
 
-- Codes written by Clarusway developers should be pulled from Clarusway Repo into the control node and sent them to the EC2's from here with Ansible.
+- Spin-up 3 Amazon Linux 2 instances and name them as:
+    1. control node -->(SSH PORT 22)(Linux)
+    2. web_sever_1 ----> (SSH PORT 22, HTTP PORT 80)(Red Hat)
+    3. web_server_2 ----> (SSH PORT 22, HTTP PORT 80)(Ubuntu)
 
-- Postgresql, Nodejs and React parts has to be placed in docker container. 
 
-- Your project manager wants the DevOps team to launch an EC2 for each postgresql, nodejs and react docker container. In addition, he asks to write three different playbook groups for this project. 
-    - First one is to write playbook to control all process for each worker instance separately. 
-    - Second one is to control all process in one playbook without using roles.
-    - Third one is to control all process in one playbook using roles
+- Connect to the control node via SSH and run the following commands.
 
-In the architecture, you can configure your architecture with these conditions,
+- Run the commands below to install Python3 and Ansible. 
 
-  - All process has to be controlled into the `control Node`
-
-  - Dynamic inventory has to be used for inventory file.
-
-  - Ansible config file has to be placed in control node.
-  
-  - Docker should be installed in all worker nodes using ansible.
-
-  - `todo-app-pern` file should be pulled from Github Repo at the beginning.
-
-  - For PostgreSQL worker node
-
-    - PostgreSQL files (Dockerfile and init.sql) should be sent into it from control node using ansible
-
-    - Docker image should be created for PostgreSQL container and init.sql file should be placed under necessary folder.
-
-    - Create PostgreSQL container. Do not forget to set password as environmental variable. This password has to be protected with ansible vault.
-
-    - Please make sure this instance's security group should be accept traffic from PostgreSQL's dedicated port from Nodejs EC2 and port 22 from anywhere.
-
-    - To keep database's data, volume has to be created with docker container and necessary file(s) should be kept under this file.
-
-  - For Nodejs worker node
-
-    - Please make sure to correct or create `.env` file under `server` folder based on PostgreSQL environmental variables
-    
-    - Nodejs's `server` folder should be sent into it from control node using ansible. This file will use for docker image. You don't need any extra file for creating Nodejs image.
-
-    - Docker image should be built for Nodejs container
-
-    - Create Nodejs container and publish it on port 5000
-
-    - Please make sure this instance's security group should be accept traffic from 5000, 22 dedicated port from anywhere.
-
-  - For React worker node
-
-    - Please make sure to correct `.env` file under `client` folder based on Nodejs environmental variables 
-    
-    - React's `client` folder should be sent into it from control node using ansible. This file will be used for docker image. You don't need any extra file for creating react image.
-
-    - Docker image should be created for React container
-
-    - Create React container and publish it on port 3000
-
-    - Please make sure this instance's security group should be accept traffic from 3000, and 80 dedicated port from anywhere.
-
-  - Last Step 
-
-## Project Skeleton 
-
-```text
-007:clarusway_ansible_proj (folder)
-|
-|----Readme.md               # Given to the students (Definition of the project)
-|----todo-app-perm (folder)  # Given to the students (Nodejs and React files)
-|       1.server (folder) ---> Nodejs folders and files
-|       2.client (folder) ---> React folders and files
-|       3.database (folder)--> init.sql file 
-|----developer_notes.txt     # Given to the students (txt file)
-|----Ansible-Playbook        # This will be created by student
+```bash
+$ sudo yum install -y python3 
 ```
 
-## Expected Outcome
+```bash
+$ pip3 install --user ansible
+```
 
-![Todo Web Page](./todo_web.png)
+- Check Ansible's installation with the command below.
 
-### At the end of the project, following topics are to be covered;
+```bash
+$ ansible --version
+```
 
-- Ansible playbook preparation without roles
 
-- Ansible playbook preparation with roles.
+- Run the command below to transfer your pem key to your Ansible Controller Node.
 
-- Bash scripting
+```bash
+$ scp -i alex.pem alex.pem ec2-user@ec2-54-166-142-231.compute-1.amazonaws.com:/home/ec2-user
+```
 
-- AWS Security groups create and attach to EC2.
 
-- Launch EC2 and it's configurations
+- Make a directory named ```working-with-roles``` under the home directory and cd into it.
 
-- Write dockerfile for postgresql, nodejs and react images.
+```bash 
+$ mkdir working-with-roles
+$ cd working-with-roles
+```
 
-- Docker image creation for postgresql, nodejs and react containers with ansible playbook
+- Create a file named ```inventory.txt``` with the command below.
 
-- Docker container launching using created image with ansible playbook
+```bash
+$ vi inventory.txt
+```
 
-- Git & Github for Version Control System
+- Paste the content below into the inventory.txt file.
 
-### At the end of the project, students will be able to;
+- Along with the hands-on, public or private IPs can be used.
 
-- Write Ansible playbook in different ways which are without Roles and with Roles
+```txt
+[servers]
+web_server_1   ansible_host=<YOUR-DB-SERVER-IP>   ansible_user=ec2-user  ansible_ssh_private_key_file=~/<YOUR-PEM-FILE>
+web_server_2  ansible_host=<YOUR-WEB-SERVER-IP>  ansible_user=ec2-user  ansible_ssh_private_key_file=~/<YOUR-PEM-FILE>
 
-- Apply web programming skills, importing packages within Nodejs and React Frameworks
+```
+- Create file named ```ansible.cfg``` under the the ```working-with-roles``` directory.
 
-- Write Dockerfiles for different environments
+```cfg
+[defaults]
+host_key_checking = False
+inventory=inventory.txt
+interpreter_python=auto_silent
+roles_path = /home/ec2-user/ansible/roles/
+```
 
-- Create containers which use React, Nodejs and PostgreSQL docker images 
 
-- Configure connection to the `PostgreSQL` database.
+- Create a file named ```ping-playbook.yml``` and paste the content below.
 
-- Connect backend server to database
+```bash
+$ touch ping-playbook.yml
+```
 
-- Configure Nodejs Framework
+```yml
+- name: ping them all
+  hosts: all
+  tasks:
+    - name: pinging
+      ping:
+```
 
-- Connect frontend server to backend server
+- Run the command below for pinging the servers.
 
-- Configure React Framework for development environment
+```bash
+$ ansible-playbook ping-playbook.yml
+```
 
-- Configure React Framework for production environment
+- Explain the output of the above command.
 
-- Demonstrate bash scripting skills using `Ansible playbook` to setup web-page on EC2 Instance.
 
-- Apply git commands (push, pull, commit, add etc.) and Github as Version Control System.
 
-## Resources
+## Part 2 - Using Ansible Roles
 
-- [Ansible Documentation Framework](https://docs.ansible.com/ansible/2.5/user_guide/index.html)
+- Install ngnix server and restart it with using Ansible roles.it will create path
 
-- [AWS CLI Command Reference](https://docs.aws.amazon.com/cli/latest/index.html)
+ansible-galaxy init /home/ec2-user/ansible/roles/apache
+
+
+cd /home/ec2-user/ansible/roles/apache
+ll
+sudo yum install tree
+tree
+
+- Create tasks/main.yml with the following.
+
+vi tasks/main.yml
+
+```yml
+- name: installing apache
+  yum:
+    name: httpd
+    state: latest
+
+- name: index.html
+  copy:
+    content: "<h1>Hello Clarusway</h1>"
+    dest: /var/www/html/index.html
+
+- name: restart apache2
+  service:
+    name: httpd
+    state: restarted
+    enabled: yes
+```
+
+- Create a playbook named "role1.yml".
+
+cd /home/ec2-user/working-with-roles/
+vi role1.yml
+
+
+---
+- name: Install and Start apache
+  hosts: web_server_1
+  become: yes
+  roles:
+    - apache
+```
+
+
+- Run the command below 
+```bash
+$ ansible-playbook role1.yml
+```
+
+
+- (if you will use same server, uninstall the apache)
+
+
+## Part 3 - Using Ansible Roles from Ansible Galaxy
+
+- Go to Ansible Galaxy web site (www.galaxy.ansible.com)
+
+- Click the Search option
+
+- Write nginx
+
+- Explane the difference beetween collections and roles
+
+- Evaluate the results (stars, number of download, etc.)
+
+- Go to command line and write:
+
+```bash
+$ ansible-galaxy search nginx
+```
+
+Stdout:
+```
+Found 1494 roles matching your search. Showing first 1000.
+
+ Name                                                         Description
+ ----                                                         -----------
+ 0x0i.prometheus                                              Prometheus - a multi-dimensional time-series data mon
+ 0x5a17ed.ansible_role_netbox                                 Installs and configures NetBox, a DCIM suite, in a pr
+ 1davidmichael.ansible-role-nginx                             Nginx installation for Linux, FreeBSD and OpenBSD.
+ 1it.sudo                                                     Ansible role for managing sudoers
+ 1mr.zabbix_host                                              configure host zabbix settings
+ 1nfinitum.php                                                PHP installation role.
+ 2goobers.jellyfin                                            Install Jellyfin on Debian.
+ 2kloc.trellis-monit                                          Install and configure Monit service in Trellis.
+ ```
+
+
+ - there are lots of. Lets filter them.
+
+ ```bash
+ $ ansible-galaxy search nginx --platform EL
+```
+"EL" for centos 
+
+- Lets go more specific :
+
+```bash
+$ ansible-galaxy search nginx --platform EL | grep geerl
+
+Stdout:
+```
+geerlingguy.nginx                                            Nginx installation for Linux, FreeBSD and OpenBSD.
+geerlingguy.php                                              PHP for RedHat/CentOS/Fedora/Debian/Ubuntu.
+geerlingguy.pimpmylog                                        Pimp my Log installation for Linux
+geerlingguy.varnish                                          Varnish for Linux.
+
+```
+- Install it:
+
+$ ansible-galaxy install geerlingguy.nginx
+
+Stdout:
+```
+- downloading role 'nginx', owned by geerlingguy
+- downloading role from https://github.com/geerlingguy/ansible-role-nginx/archive/2.8.0.tar.gz
+- extracting geerlingguy.nginx to /home/ec2-user/.ansible/roles/geerlingguy.nginx
+- geerlingguy.nginx (2.8.0) was installed successfully
+```
+
+- Inspect the role:
+
+$ cd /home/ec2-user/ansible/roles/geerlingguy.nginx
+
+$ ls
+defaults  handlers  LICENSE  meta  molecule  README.md  tasks  templates  vars
+
+$ cd tasks
+$ ls
+
+main.yml             setup-Debian.yml   setup-OpenBSD.yml  setup-Ubuntu.yml
+setup-Archlinux.yml  setup-FreeBSD.yml  setup-RedHat.yml   vhosts.yml
+
+$ vi main.yml
+
+```yml
+---
+# Variable setup.
+- name: Include OS-specific variables.
+  include_vars: "{{ ansible_os_family }}.yml"
+
+- name: Define nginx_user.
+  set_fact:
+    nginx_user: "{{ __nginx_user }}"
+  when: nginx_user is not defined
+
+# Setup/install tasks.
+- include_tasks: setup-RedHat.yml
+  when: ansible_os_family == 'RedHat'
+
+- include_tasks: setup-Ubuntu.yml
+  when: ansible_distribution == 'Ubuntu'
+
+- include_tasks: setup-Debian.yml
+  when: ansible_os_family == 'Debian'
+
+- include_tasks: setup-FreeBSD.yml
+  when: ansible_os_family == 'FreeBSD'
+
+- include_tasks: setup-OpenBSD.yml
+  when: ansible_os_family == 'OpenBSD'
+
+- include_tasks: setup-Archlinux.yml
+  when: ansible_os_family == 'Archlinux'
+
+# Vhost configuration.
+- import_tasks: vhosts.yml
+
+# Nginx setup.
+- name: Copy nginx configuration in place.
+  template:
+    src: "{{ nginx_conf_template }}"
+    dest: "{{ nginx_conf_file_path }}"
+    owner: root
+    group: "{{ root_group }}"
+    mode: 0644
+  notify:
+    - reload nginx
+```
+
+- # use it in playbook:
+
+- Create a playbook named "playbook-nginx.yml"
+
+```yml
+- name: use galaxy nginx role
+  hosts: web_server_2
+  user: ec2-user
+  become: true
+  vars:
+    ansible_ssh_private_key_file: "/home/ec2-user/alex.pem"
+
+  roles:
+    - role: geerlingguy.nginx
+```
+
+- Run the playbook.
+
+$ ansible-playbook playbook-nginx.yml
+
+- List the roles you have:
+
+$ ansible-galaxy list
+
+Stdout:
+```
+- geerlingguy.elasticsearch, 5.0.0
+- geerlingguy.mysql, 3.3.0
+```
+
+- 
+$ ansible-config dump | grep ROLE
+
+Stdout:
+```
+DEFAULT_PRIVATE_ROLE_VARS(default) = False
+DEFAULT_ROLES_PATH(default) = [u'/home/ercan/.ansible/roles', u'/usr/share/ansible/roles', u'/etc/ansible/roles']
+GALAXY_ROLE_SKELETON(default) = None
+GALAXY_ROLE_SKELETON_IGNORE(default) = ['^.git$', '^.*/.git_keep$']
+```
+
+
+
+
+
